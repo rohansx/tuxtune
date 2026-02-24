@@ -1,0 +1,16 @@
+[profile]
+name = "battery"
+description = "Power-saving optimizations for laptop use"
+
+[[optimization]]
+name = "Battery-saving VM tuning"
+description = "Reduce disk writes to save power"
+explanation = "Increases dirty page writeback interval, allowing the disk to stay idle longer. Combined with laptop-mode, this significantly reduces power consumption."
+
+[[optimization.sysctl]]
+key = "vm.dirty_writeback_centisecs"
+value = "6000"
+
+[[optimization.sysctl]]
+key = "vm.laptop_mode"
+value = "5"

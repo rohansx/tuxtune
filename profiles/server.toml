@@ -1,0 +1,21 @@
+[profile]
+name = "server"
+description = "Throughput-oriented server optimizations"
+extends = ["developer"]
+
+[[optimization]]
+name = "Server connection limits"
+description = "Increase connection limits for server workloads"
+explanation = "Higher file descriptor limits and connection backlog for handling many concurrent connections in server environments."
+
+[[optimization.sysctl]]
+key = "net.core.somaxconn"
+value = "65535"
+
+[[optimization.sysctl]]
+key = "net.core.netdev_max_backlog"
+value = "65535"
+
+[[optimization.sysctl]]
+key = "fs.file-max"
+value = "2097152"

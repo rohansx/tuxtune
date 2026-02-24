@@ -1,0 +1,103 @@
+[profile]
+name = "developer"
+description = "Balanced optimization for development workloads (IDE, Docker, builds)"
+
+[[optimization]]
+name = "Inotify watches"
+description = "Increase inotify limits for IDEs, file watchers, and dev servers"
+explanation = "VS Code, JetBrains, webpack, vite, and other tools use inotify to watch files. The default 8192 is far too low for real projects. Each watch costs ~1KB kernel memory."
+
+[[optimization.sysctl]]
+key = "fs.inotify.max_user_watches"
+value = "1048576"
+
+[[optimization.sysctl]]
+key = "fs.inotify.max_user_instances"
+value = "8192"
+
+[[optimization.sysctl]]
+key = "fs.inotify.max_queued_events"
+value = "32768"
+
+[[optimization]]
+name = "TCP BBR congestion control"
+description = "Switch to Google's BBR congestion algorithm"
+explanation = "BBR uses bandwidth estimation instead of packet loss, giving better throughput and lower latency for git operations, Docker pulls, and npm installs."
+requires = ["bbr"]
+
+[[optimization.sysctl]]
+key = "net.core.default_qdisc"
+value = "fq"
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_congestion_control"
+value = "bbr"
+
+[[optimization]]
+name = "TCP buffer sizes"
+description = "Increase TCP buffer limits for high-bandwidth transfers"
+explanation = "Default max of ~212KB bottlenecks large transfers (git clone, docker pull). 16MB allows full utilization of fast connections."
+
+[[optimization.sysctl]]
+key = "net.core.rmem_max"
+value = "16777216"
+
+[[optimization.sysctl]]
+key = "net.core.wmem_max"
+value = "16777216"
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_rmem"
+value = "4096 131072 16777216"
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_wmem"
+value = "4096 131072 16777216"
+
+[[optimization]]
+name = "TCP Fast Open"
+description = "Enable TCP Fast Open for client and server"
+explanation = "Sends data in the SYN packet, saving one round-trip on new connections. Reduces latency for API calls and HTTP requests from dev servers."
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_fastopen"
+value = "3"
+
+[[optimization]]
+name = "Connection handling"
+description = "Optimize connection backlog and port reuse for dev servers"
+explanation = "Higher somaxconn prevents connection drops under load. TIME_WAIT reuse and wider port range help when running many local services and containers."
+
+[[optimization.sysctl]]
+key = "net.core.somaxconn"
+value = "8192"
+
+[[optimization.sysctl]]
+key = "net.core.netdev_max_backlog"
+value = "8192"
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_tw_reuse"
+value = "1"
+
+[[optimization.sysctl]]
+key = "net.ipv4.ip_local_port_range"
+value = "1024 65535"
+
+[[optimization]]
+name = "VM dirty page tuning"
+description = "Optimize write-back behavior for NVMe"
+explanation = "Caps dirty page buffers to prevent large write stalls. Optimal for NVMe drives where small, frequent flushes beat large batches."
+min_ram_mb = 16384
+
+[[optimization.sysctl]]
+key = "vm.dirty_bytes"
+value = "268435456"
+
+[[optimization.sysctl]]
+key = "vm.dirty_background_bytes"
+value = "67108864"
+
+[[optimization.sysctl]]
+key = "vm.dirty_writeback_centisecs"
+value = "1500"

@@ -16,7 +16,8 @@ tuxtune detects your hardware, recommends optimizations for your workload, expla
 ## Features
 
 - **Hardware detection** — reads CPU, memory, disk type (NVMe/SSD/HDD), network stack, and kernel config
-- **Optimization profiles** — developer, compile, gaming, battery, server
+- **TOML-based profiles** — developer, compile, gaming, battery, server — all user-editable
+- **Custom profiles** — drop a `.toml` file in `~/.config/tuxtune/profiles/` to add your own
 - **Interactive TUI** — browse system state, toggle individual optimizations, switch profiles
 - **Dry-run mode** — preview every change before applying
 - **Snapshot & rollback** — automatic state capture before changes, one-command restore
@@ -140,6 +141,45 @@ sudo tuxtune rollback ~/.local/share/tuxtune/snapshots/snapshot_20260224_143052.
 | `battery` | Power-saving optimizations for laptop use |
 | `server` | Throughput-oriented server optimizations |
 
+### Custom Profiles
+
+Profiles are TOML files. The built-in profiles live in `profiles/` and are embedded into the binary at compile time. You can create custom profiles by placing `.toml` files in `~/.config/tuxtune/profiles/`.
+
+Custom profiles can override built-in profiles (by using the same `profile.name`) or add entirely new ones.
+
+**Example custom profile:**
+
+```toml
+[profile]
+name = "workstation"
+description = "Custom profile for my workstation"
+extends = ["developer"]
+
+[[optimization]]
+name = "Increased file descriptors"
+description = "Raise file descriptor limit"
+explanation = "Many dev tools open lots of files simultaneously."
+
+[[optimization.sysctl]]
+key = "fs.file-max"
+value = "2097152"
+```
+
+**Profile schema:**
+
+| Field | Description |
+|-------|-------------|
+| `profile.name` | Profile identifier (used in CLI and TUI) |
+| `profile.description` | One-line description shown in `tuxtune list` |
+| `profile.extends` | List of parent profiles to inherit optimizations from |
+| `optimization[].name` | Optimization display name |
+| `optimization[].description` | Short description |
+| `optimization[].explanation` | Detailed explanation of why this helps |
+| `optimization[].requires` | Capability requirements (e.g., `["bbr"]`) |
+| `optimization[].min_ram_mb` | Minimum RAM in MB for this optimization to apply |
+| `optimization[].sysctl[].key` | Sysctl parameter key |
+| `optimization[].sysctl[].value` | Desired value |
+
 ## What It Tunes
 
 | Category | Examples |
@@ -155,25 +195,45 @@ Every optimization includes an explanation of what it does and why — visible i
 ## Architecture
 
 ```
-src/
-├── main.rs           # CLI entry point
-├── cli.rs            # Argument parsing (clap)
-├── detect/           # Hardware detection
-│   ├── cpu.rs        # CPU model, cores, governor, scheduler, pstate
-│   ├── memory.rs     # RAM, swap, zram, swappiness, cache pressure
-│   ├── disk.rs       # Block devices, filesystem, mount options, I/O scheduler
-│   └── network.rs    # TCP stack configuration
-├── optimize/         # Optimization engine
-│   └── mod.rs        # Change types, apply logic, builder helpers
-├── profile/          # Workload profiles
-│   └── mod.rs        # developer, compile, gaming, battery, server
-├── state/            # Snapshot & rollback
-│   └── mod.rs        # JSON-based state capture and restore
-└── tui/              # Interactive terminal UI
-    ├── app.rs        # Application state and input handling
-    ├── ui.rs         # Rendering (ratatui)
-    └── mod.rs        # Terminal setup and event loop
+tuxtune/
+├── profiles/             # TOML profile definitions (embedded at compile time)
+│   ├── developer.toml
+│   ├── compile.toml
+│   ├── gaming.toml
+│   ├── battery.toml
+│   └── server.toml
+├── src/
+│   ├── main.rs           # CLI entry point
+│   ├── cli.rs            # Argument parsing (clap)
+│   ├── detect/           # Hardware detection
+│   │   ├── cpu.rs        # CPU model, cores, governor, scheduler, pstate
+│   │   ├── memory.rs     # RAM, swap, zram, swappiness, cache pressure
+│   │   ├── disk.rs       # Block devices, filesystem, mount options, I/O scheduler
+│   │   └── network.rs    # TCP stack configuration
+│   ├── optimize/         # Optimization engine
+│   │   └── mod.rs        # Change types, apply logic, builder helpers
+│   ├── profile/          # Workload profiles
+│   │   ├── mod.rs        # TOML loader, condition evaluator, extends resolver
+│   │   └── types.rs      # Serde deserialization types
+│   ├── state/            # Snapshot & rollback
+│   │   └── mod.rs        # JSON-based state capture and restore
+│   └── tui/              # Interactive terminal UI
+│       ├── app.rs        # Application state and input handling
+│       ├── ui.rs         # Rendering (ratatui)
+│       └── mod.rs        # Terminal setup and event loop
+├── tests/                # Integration tests
+│   ├── profile_loading.rs
+│   └── toml_schema.rs
+└── completions/          # Shell completions (planned)
 ```
+
+**Profile loading flow:**
+1. Built-in TOML profiles are embedded via `include_str!` — the binary works standalone
+2. User profiles from `~/.config/tuxtune/profiles/*.toml` are loaded at runtime
+3. User profiles override built-in profiles by name, or add new ones
+4. `extends` chains are resolved with circular dependency detection
+5. Conditional optimizations are filtered by system capabilities (`requires`) and RAM (`min_ram_mb`)
+6. Sysctl parameters are passed to the existing `optimize::sysctl_opt()` builder
 
 ## Roadmap
 
@@ -181,7 +241,7 @@ src/
 - [ ] Package detection (suggest missing dev tools like ccache, mold)
 - [ ] Service management (enable/disable services)
 - [ ] GPU detection (NVIDIA/AMD driver params)
-- [ ] Export/import optimization configs
+- [ ] Shell completions (bash, zsh, fish)
 - [ ] AUR and crates.io publishing
 
 ## Contributing

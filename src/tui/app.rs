@@ -35,7 +35,7 @@ pub struct App {
     pub selected: usize,
     pub optimizations: Vec<OptEntry>,
     pub profile_index: usize,
-    pub profiles: Vec<(&'static str, &'static str)>,
+    pub profiles: Vec<(String, String)>,
     pub status_message: String,
 }
 
@@ -43,8 +43,7 @@ impl App {
     pub fn new() -> Result<Self> {
         let system = detect::scan_system()?;
         let profiles = profile::list_all();
-        let profile_name = profiles[0].0;
-        let opts = profile::resolve(profile_name, &system);
+        let opts = profile::resolve(&profiles[0].0, &system);
 
         let optimizations = opts
             .into_iter()
@@ -150,7 +149,7 @@ impl App {
 
     pub fn cycle_profile(&mut self) {
         self.profile_index = (self.profile_index + 1) % self.profiles.len();
-        let name = self.profiles[self.profile_index].0;
+        let name = &self.profiles[self.profile_index].0;
         let opts = profile::resolve(name, &self.system);
         self.optimizations = opts
             .into_iter()

@@ -196,7 +196,7 @@ fn render_optimizations(f: &mut Frame, app: &App, area: Rect) {
         })
         .collect();
 
-    let profile_name = app.profiles[app.profile_index].0;
+    let profile_name = &app.profiles[app.profile_index].0;
     let list = List::new(items).block(
         Block::default()
             .borders(Borders::ALL)

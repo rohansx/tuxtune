@@ -1,0 +1,13 @@
+[profile]
+name = "compile"
+description = "Maximum compilation performance (parallel builds, ccache, tmpfs)"
+extends = ["developer"]
+
+[[optimization]]
+name = "Page cluster (compilation)"
+description = "Disable swap readahead for zram"
+explanation = "With zram swap, readahead is counterproductive since data is already in RAM. Setting to 0 reduces unnecessary decompression during heavy compilation."
+
+[[optimization.sysctl]]
+key = "vm.page-cluster"
+value = "0"

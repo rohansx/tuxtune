@@ -1,0 +1,26 @@
+[profile]
+name = "gaming"
+description = "Low-latency optimizations for gaming"
+
+[[optimization]]
+name = "Gaming network latency"
+description = "Minimize network latency for gaming"
+explanation = "Enables TCP Fast Open for lower-latency network communication in online games."
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_fastopen"
+value = "3"
+
+[[optimization]]
+name = "BBR congestion control"
+description = "Switch to BBR for better gaming network performance"
+explanation = "BBR provides lower latency and better throughput than CUBIC."
+requires = ["bbr"]
+
+[[optimization.sysctl]]
+key = "net.core.default_qdisc"
+value = "fq"
+
+[[optimization.sysctl]]
+key = "net.ipv4.tcp_congestion_control"
+value = "bbr"

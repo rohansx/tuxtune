@@ -127,6 +127,10 @@ fn render_system(f: &mut Frame, app: &App, area: Rect) {
                 if gpu.preserve_vram { "yes" } else { "NO" }
             )));
             gpu_lines.push(Line::from(format!(
+                "  S0ix power mgmt: {}",
+                if gpu.s0ix_enabled { "yes" } else { "NO" }
+            )));
+            gpu_lines.push(Line::from(format!(
                 "  Suspend svc: {}",
                 if gpu.suspend_services_enabled {
                     "enabled"

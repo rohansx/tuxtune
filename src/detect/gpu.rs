@@ -9,6 +9,7 @@ pub struct GpuInfo {
     pub model: String,
     pub driver_version: String,
     pub preserve_vram: bool,
+    pub s0ix_enabled: bool,
     pub suspend_services_enabled: bool,
 }
 
@@ -29,6 +30,15 @@ impl fmt::Display for GpuInfo {
                 f,
                 "  VRAM preservation: {}",
                 if self.preserve_vram {
+                    "enabled"
+                } else {
+                    "DISABLED"
+                }
+            )?;
+            writeln!(
+                f,
+                "  S0ix power mgmt: {}",
+                if self.s0ix_enabled {
                     "enabled"
                 } else {
                     "DISABLED"
@@ -67,9 +77,9 @@ fn detect_nvidia() -> Option<GpuInfo> {
 
     let model = detect_nvidia_model().unwrap_or_else(|| "NVIDIA GPU".into());
 
-    let preserve_vram = fs::read_to_string("/proc/driver/nvidia/params")
-        .map(|s| s.contains("PreserveVideoMemoryAllocations: 1"))
-        .unwrap_or(false);
+    let params = fs::read_to_string("/proc/driver/nvidia/params").unwrap_or_default();
+    let preserve_vram = params.contains("PreserveVideoMemoryAllocations: 1");
+    let s0ix_enabled = params.contains("EnableS0ixPowerManagement: 1");
 
     let suspend_services_enabled = check_service_enabled("nvidia-suspend")
         && check_service_enabled("nvidia-resume")
@@ -80,6 +90,7 @@ fn detect_nvidia() -> Option<GpuInfo> {
         model,
         driver_version,
         preserve_vram,
+        s0ix_enabled,
         suspend_services_enabled,
     })
 }

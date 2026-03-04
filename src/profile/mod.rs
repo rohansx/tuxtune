@@ -73,7 +73,16 @@ pub fn list_all() -> Vec<(String, String)> {
 pub fn resolve(name: &str, system: &SystemInfo) -> Vec<Optimization> {
     let all = load_all_profiles();
     let caps = detect_capabilities();
-    resolve_profile(name, system, &all, &caps, &mut HashSet::new())
+    let mut opts = resolve_profile(name, system, &all, &caps, &mut HashSet::new());
+
+    // Append hardware-specific optimizations detected from the system
+    if let Some(ref gpu) = system.gpu {
+        if let Some(nvidia_opt) = optimize::nvidia_suspend_opt(gpu) {
+            opts.push(nvidia_opt);
+        }
+    }
+
+    opts
 }
 
 fn resolve_profile(

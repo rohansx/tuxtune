@@ -44,13 +44,25 @@ fn render_system(f: &mut Frame, app: &App, area: Rect) {
     let content = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(area);
 
-    // Left: CPU + Memory
-    let left_sections = Layout::vertical([
-        Constraint::Length(8),
-        Constraint::Length(10),
-        Constraint::Min(5),
-    ])
-    .split(content[0]);
+    // Left: CPU + Memory + GPU + System
+    let has_gpu = sys.gpu.is_some();
+    let left_sections = if has_gpu {
+        Layout::vertical([
+            Constraint::Length(8),
+            Constraint::Length(10),
+            Constraint::Length(8),
+            Constraint::Min(5),
+        ])
+        .split(content[0])
+    } else {
+        Layout::vertical([
+            Constraint::Length(8),
+            Constraint::Length(10),
+            Constraint::Length(0),
+            Constraint::Min(5),
+        ])
+        .split(content[0])
+    };
 
     let cpu_text = vec![
         Line::from(format!("  Model: {}", sys.cpu.model)),
@@ -104,6 +116,34 @@ fn render_system(f: &mut Frame, app: &App, area: Rect) {
     );
     f.render_widget(mem_block, left_sections[1]);
 
+    if let Some(ref gpu) = sys.gpu {
+        let mut gpu_lines = vec![
+            Line::from(format!("  Model: {}", gpu.model)),
+            Line::from(format!("  Driver: {}", gpu.driver_version)),
+        ];
+        if gpu.vendor == crate::detect::gpu::GpuVendor::Nvidia {
+            gpu_lines.push(Line::from(format!(
+                "  VRAM preserve: {}",
+                if gpu.preserve_vram { "yes" } else { "NO" }
+            )));
+            gpu_lines.push(Line::from(format!(
+                "  Suspend svc: {}",
+                if gpu.suspend_services_enabled {
+                    "enabled"
+                } else {
+                    "DISABLED"
+                }
+            )));
+        }
+        let gpu_block = Paragraph::new(gpu_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" GPU ")
+                .padding(Padding::horizontal(1)),
+        );
+        f.render_widget(gpu_block, left_sections[2]);
+    }
+
     let kern_text = vec![
         Line::from(format!("  Kernel: {}", sys.kernel)),
         Line::from(format!("  Hostname: {}", sys.hostname)),
@@ -114,7 +154,7 @@ fn render_system(f: &mut Frame, app: &App, area: Rect) {
             .title(" System ")
             .padding(Padding::horizontal(1)),
     );
-    f.render_widget(kern_block, left_sections[2]);
+    f.render_widget(kern_block, left_sections[3]);
 
     // Right: Disks + Network
     let right_sections =

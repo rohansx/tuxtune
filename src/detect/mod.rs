@@ -1,5 +1,6 @@
 mod cpu;
 mod disk;
+pub mod gpu;
 mod memory;
 mod network;
 
@@ -13,6 +14,7 @@ pub struct SystemInfo {
     pub memory: memory::MemoryInfo,
     pub disks: Vec<disk::DiskInfo>,
     pub network: network::NetworkInfo,
+    pub gpu: Option<gpu::GpuInfo>,
     pub kernel: String,
     pub hostname: String,
 }
@@ -23,6 +25,9 @@ impl fmt::Display for SystemInfo {
         writeln!(f)?;
         writeln!(f, "{}", self.cpu)?;
         writeln!(f, "{}", self.memory)?;
+        if let Some(ref gpu) = self.gpu {
+            writeln!(f, "{gpu}")?;
+        }
         for disk in &self.disks {
             writeln!(f, "{disk}")?;
         }
@@ -36,6 +41,7 @@ pub fn scan_system() -> Result<SystemInfo> {
         memory: memory::detect()?,
         disks: disk::detect()?,
         network: network::detect()?,
+        gpu: gpu::detect(),
         kernel: read_file_trimmed("/proc/version")
             .map(|v| v.split_whitespace().nth(2).unwrap_or("unknown").to_string())
             .unwrap_or_else(|_| "unknown".into()),

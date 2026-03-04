@@ -55,11 +55,21 @@ pub fn rollback(path: &PathBuf) -> Result<()> {
 
     for entry in &snap.entries {
         if let Some(ref prev) = entry.previous_value {
-            let sysctl_path = format!("/proc/sys/{}", entry.target.replace('.', "/"));
-            if std::path::Path::new(&sysctl_path).exists() {
-                fs::write(&sysctl_path, prev)
-                    .with_context(|| format!("Failed to restore {}", entry.target))?;
-                println!("  Restored: {} = {}", entry.target, prev);
+            if entry.target.starts_with('/') {
+                // Direct file path (e.g., /etc/modprobe.d/nvidia.conf)
+                if std::path::Path::new(&entry.target).exists() {
+                    fs::write(&entry.target, prev)
+                        .with_context(|| format!("Failed to restore {}", entry.target))?;
+                    println!("  Restored: {}", entry.target);
+                }
+            } else {
+                // Sysctl key
+                let sysctl_path = format!("/proc/sys/{}", entry.target.replace('.', "/"));
+                if std::path::Path::new(&sysctl_path).exists() {
+                    fs::write(&sysctl_path, prev)
+                        .with_context(|| format!("Failed to restore {}", entry.target))?;
+                    println!("  Restored: {} = {}", entry.target, prev);
+                }
             }
         }
     }
